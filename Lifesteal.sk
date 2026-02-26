@@ -1,0 +1,38 @@
+# --- Lifesteal Script (20 Hearts / 40 Points Max) ---
+
+options:
+    max-health: 40
+    starting-health: 20
+
+on death of player:
+    attacker is a player:
+        # 1. Give 1 Heart (2 points) to the killer
+        set {_max} to attacker's max health
+        if {_max} < {@max-health}:
+            set attacker's max health to ({_max} + 2)
+            heal attacker
+            send "&a&l+1 HEART! &7You stole a heart from %victim%." to attacker
+        else:
+            # If they are at 20 hearts, give them the item instead
+            give 1 red dye named "&c&lLifelox Heart" with lore "&7Right-click to gain +1 heart slot" to attacker
+            send "&6Max hearts reached! &7The heart was added to your inventory." to attacker
+            
+        # 2. Take 1 Heart (2 points) from the victim
+        set {_vmax} to victim's max health
+        if {_vmax} > 2:
+            set victim's max health to ({_vmax} - 2)
+            send "&c&l-1 HEART! &7%attacker% stole a heart from you." to victim
+        else:
+            # If they have only 1 heart left and die
+            kick victim due to "&4&lELIMINATED! &cYou ran out of hearts."
+
+on rightclick with red dye:
+    name of tool is "&c&lLifelox Heart":
+        cancel event
+        if player's max health < {@max-health}:
+            remove 1 of tool from player's inventory
+            set player's max health to (player's max health + 2)
+            heal player
+            send "&a&lHEART APPLIED! &7Your max health is now %player's max health / 2% hearts." to player
+        else:
+            send "&cYou already have the max of 20 hearts!" to player
