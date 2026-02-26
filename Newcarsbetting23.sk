@@ -1,0 +1,111 @@
+# --- High Card: Chat Edition (No GUIs = No Errors) ---
+
+variables:
+    {total.bets} = 0
+
+command /cardbet [<number>]:
+    trigger:
+        if arg-1 is set:
+            if arg-1 < 5000:
+                send "&c&l[!] &7Min bet is &a$5,000&7."
+                stop
+            if player's balance < arg-1:
+                send "&c&l[!] &7Insufficient funds!"
+                stop
+            
+            remove arg-1 from player's balance
+            add 1 to {total.bets}
+            set {bet.amount::%{total.bets}%} to arg-1
+            set {bet.owner::%{total.bets}%} to player
+            set {bet.active::%{total.bets}%} to true
+            
+            broadcast "&6&lBET &8| &e%player% &7posted a &a$%arg-1% &7bet!"
+            broadcast "&eType &f/cardplay %player% &eto challenge them!"
+            stop
+
+        # If they just type /cardbet, show the list in chat
+        send "&8&m---------------------------------------"
+        send "&6&lACTIVE BETS:"
+        set {_count} to 0
+        loop {total.bets} times:
+            if {bet.active::%loop-number%} is true:
+                send "&7- &e%{bet.owner::%loop-number%}%&7: &a$%{bet.amount::%loop-number%}% &8(&f/cardplay %{bet.owner::%loop-number%}%&8)"
+                add 1 to {_count}
+        if {_count} is 0:
+            send "&7No active bets. Use &f/cardbet <amount> &7to start one!"
+        send "&8&m---------------------------------------"
+
+command /cardplay <player>:
+    trigger:
+        if arg-1 is player:
+            send "&cYou cannot play against yourself!"
+            stop
+            
+        set {_found} to false
+        loop {total.bets} times:
+            if {bet.active::%loop-number%} is true:
+                if {bet.owner::%loop-number%} is arg-1:
+                    set {_id} to loop-number
+                    set {_amt} to {bet.amount::%{_id}%}
+                    set {_found} to true
+        
+        if {_found} is false:
+            send "&c%arg-1% has no active bets!"
+            stop
+            
+        if player's balance < {_amt}:
+            send "&cYou need &a$%{_amt}% &cto play this bet!"
+            stop
+
+        # START THE GAME
+        set {bet.active::%{_id}%} to false
+        remove {_amt} from player's balance
+        set {_p1} to arg-1
+        set {_p2} to player
+        
+        broadcast "&6&lGAME &8| &e%{_p1}% &7vs &e%{_p2}% &7for &a$%{_amt} * 2%&7!"
+        wait 2 seconds
+        
+        # Draw 3 Cards (1-50 each)
+        set {_r1} to random integer between 1 and 50
+        set {_r2} to random integer between 1 and 50
+        set {_r3} to random integer between 1 and 50
+        set {_p1score} to {_r1} + {_r2} + {_r3}
+        
+        set {_r4} to random integer between 1 and 50
+        set {_r5} to random integer between 1 and 50
+        set {_r6} to random integer between 1 and 50
+        set {_p2score} to {_r4} + {_r5} + {_r6}
+        
+        broadcast "&b%{_p1}% &7scored &f%{_p1score}% &8| &d%{_p2}% &7scored &f%{_p2score}%"
+        
+        if {_p1score} > {_p2score}:
+            add ({_amt} * 2) to {_p1}'s balance
+            broadcast "&a&lWINNER! &e%{_p1}% &7won &a$%{_amt} * 2%&7!"
+        else if {_p2score} > {_p1score}:
+            add ({_amt} * 2) to {_p2}'s balance
+            broadcast "&a&lWINNER! &e%{_p2}% &7won &a$%{_amt} * 2%&7!"
+        else:
+            add {_amt} to {_p1}'s balance
+            add {_amt} to {_p2}'s balance
+            broadcast "&e&lTIE! &7Refunded."
+
+command /card see <player>:
+    trigger:
+        loop {total.bets} times:
+            if {bet.active::%loop-number%} is true:
+                if {bet.owner::%loop-number%} is arg-1:
+                    send "&6&lINFO &8| &e%arg-1% &7has a bet of &a$%{bet.amount::%loop-number%}%"
+                    stop
+        send "&cNo bets found for %arg-1%."
+
+command /cardwithdraw:
+    trigger:
+        loop {total.bets} times:
+            if {bet.owner::%loop-number%} is player:
+                if {bet.active::%loop-number%} is true:
+                    add {bet.amount::%loop-number%} to player's balance
+                    set {bet.active::%loop-number%} to false
+                    send "&a&lREFUNDED! &7Your bet was withdrawn."
+                    stop
+        send "&cYou have no active bets to withdraw."
