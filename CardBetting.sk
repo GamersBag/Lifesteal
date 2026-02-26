@@ -1,0 +1,93 @@
+# --- High Card Board (Old-School 1.8.8 Version) ---
+
+variables:
+    {total.bets} = 0
+
+command /cardbet [<number>]:
+    trigger:
+        # 1. Posting the bet
+        if arg-1 is set:
+            if arg-1 < 5000:
+                send "&c&l[!] &7Min bet is &a$5,000&7."
+                stop
+            if player's balance < arg-1:
+                send "&c&l[!] &7You're broke! Need &a$%arg-1%&7."
+                stop
+            
+            remove arg-1 from player's balance
+            add 1 to {total.bets}
+            set {bet.amount::%{total.bets}%} to arg-1
+            set {bet.owner::%{total.bets}%} to player
+            
+            broadcast "&6&lBET &8| &e%player% &7posted a &a$%arg-1% &7bet! Type &f/cardbet &7to play."
+            stop
+
+        # 2. Opening the board (Simplified for 1.8.8)
+        open chest with 6 rows named "&0&lPublic Betting Board" to player
+        wait 1 tick
+        set {_slot} to 0
+        loop {total.bets} times:
+            if {bet.amount::%loop-number%} is set:
+                set {_amt} to {bet.amount::%loop-number%}
+                set {_owner} to {bet.owner::%loop-number%}
+                set {_id} to loop-number
+                
+                if player is {_owner}:
+                    # Use standard 'format' syntax
+                    format slot {_slot} of player with red glass pane named "&c&lYOUR BET: $%{_amt}%" with lore "&7Click to cancel and refund" to close then run [execute player command "/cardcancel %{_id}%"]
+                else:
+                    format slot {_slot} of player with paper named "&e&lBet by %{_owner}%" with lore "&b&l$ %{_amt}%" and "&7Click to match this bet!" to close then run [execute player command "/cardaccept %{_id}%"]
+                
+                add 1 to {_slot}
+                if {_slot} >= 54:
+                    stop loop
+
+# Hidden commands to make the GUI click work
+command /cardcancel <number>:
+    executable by: players
+    trigger:
+        set {_id} to arg-1
+        if {bet.owner::%{_id}%} is player:
+            add {bet.amount::%{_id}%} to player's balance
+            delete {bet.amount::%{_id}%}
+            delete {bet.owner::%{_id}%}
+            send "&a&lREFUNDED!"
+        else:
+            send "&cNot your bet."
+
+command /cardaccept <number>:
+    executable by: players
+    trigger:
+        set {_id} to arg-1
+        set {_amt} to {bet.amount::%{_id}%}
+        set {_p1} to {bet.owner::%{_id}%}
+        set {_p2} to player
+        
+        if {_p2}'s balance < {_amt}:
+            send "&cNo money!"
+            stop
+        
+        # Clear bet
+        delete {bet.amount::%{_id}%}
+        delete {bet.owner::%{_id}%}
+        remove {_amt} from player's balance
+        
+        broadcast "&6&lGAME &8| &e%{_p1}% &7vs &e%{_p2}% &7for &a$%{_amt} * 2%&7!"
+        wait 2 seconds
+        
+        # 3 Cards each
+        set {_p1total} to (random integer between 1 and 50) + (random integer between 1 and 50) + (random integer between 1 and 50)
+        set {_p2total} to (random integer between 1 and 50) + (random integer between 1 and 50) + (random integer between 1 and 50)
+        
+        broadcast "&b%{_p1}% &7scored &f%{_p1total}% &8| &d%{_p2}% &7scored &f%{_p2total}%"
+        
+        if {_p1total} > {_p2total}:
+            add ({_amt} * 2) to {_p1}'s balance
+            broadcast "&a&lWINNER! &e%{_p1}% &7won!"
+        else if {_p2total} > {_p1total}:
+            add ({_amt} * 2) to {_p2}'s balance
+            broadcast "&a&lWINNER! &e%{_p2}% &7won!"
+        else:
+            add {_amt} to {_p1}'s balance
+            add {_amt} to {_p2}'s balance
+            broadcast "&e&lTIE!"
