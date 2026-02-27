@@ -1,0 +1,20 @@
+# Hardcore Lifesteal: Killer gets extra heart and victim gets banned for 2 hours upon death
+
+# When a player dies
+on death of player:
+    victim is a player
+    attacker is a player
+    
+    # Ensure there is a killer (attacker)
+    if attacker is not null:
+        # Ban the victim for 2 hours
+        execute console command "ban %victim% You died in Hardcore Lifesteal mode! Ban time: 2 hours."
+        
+        # Give the killer an extra heart (increase max health by 1)
+        add 2 to max health of attacker
+        send "&aYou gained an extra heart for killing %victim's display name%!" to attacker
+        
+        # Optional: Notify the player who died
+        send "&cYou died in Hardcore mode. You've been banned for 2 hours!" to victim
+
+    cancel event # Cancel the death event to stop item drops, etc.
