@@ -1,0 +1,32 @@
+# --- Configuration ---
+options:
+    prefix: &4&l[LIFESTEAL]
+    ban_time: 24 hours
+    max_hp: 40.0 # 20 Hearts (In 1.8.8, 2 health points = 1 Heart)
+
+# This triggers for ANY death (PvP, Mobs, Fall, Void, etc.)
+on death of player:
+    set {_victim} to victim
+    
+    # 1. THE KILLER LOGIC
+    if attacker is a player:
+        set {_killer} to attacker
+        
+        # Check if killer is under the 20 heart cap (40 HP)
+        if {_killer}'s max health < {@max_hp}:
+            set {_killer}'s max health to ({_killer}'s max health + 2)
+            send "{@prefix} &7You killed %{_victim}% and gained &c1 Heart&7." to {_killer}
+        else:
+            # If at 20 hearts, give the heart as a physical item
+            give 1 nether star named "&c&lHeart Item" with lore "&7A physical soul... Use it or trade it." to {_killer}
+            send "{@prefix} &eMax hearts reached! &7Heart added to your inventory." to {_killer}
+
+    # 2. THE ABSOLUTE BAN RULE
+    # Small delay to ensure the death message shows before the kick
+    wait 10 ticks
+    
+    # Broadcast to the whole server
+    broadcast "{@prefix} &e%{_victim}% &7has died and is banned for &c24 hours&7!"
+    
+    # EssentialsX command: /tempban [player] [time] [reason]
+    execute console command "tempban %{_victim}% 24h &cEliminated! See you in 1 day."
