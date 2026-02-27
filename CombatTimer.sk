@@ -1,0 +1,24 @@
+# Combat Timeout: If a player hits someone, they cannot leave combat for 15 seconds. If they try, they get banned!
+
+# Declare a variable to store the time a player was last in combat
+on damage:
+    attacker is a player
+    victim is a player
+    set {_combatTime.%attacker%} to now
+    set {_combatTime.%victim%} to now
+
+# Prevent players from leaving combat until 15 seconds after the hit
+on quit:
+    player is a player
+    if {_combatTime.%player%} is not set or now - {_combatTime.%player%} < 15:
+        execute console command "ban %player% You were caught leaving combat during a fight!"
+        send "&cYou tried to leave combat too early and have been banned!" to player
+        cancel event
+
+# Allow players to leave after 15 seconds
+every 1 second:
+    loop all players:
+        if {_combatTime.%loop-player%} is set and now - {_combatTime.%loop-player%} >= 15:
+            # Clear the combat time after 15 seconds
+            set {_combatTime.%loop-player%} to 0
+            send "&aYou can now leave combat!" to loop-player
